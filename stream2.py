@@ -19,7 +19,7 @@ def lines_to_color_image(lines):
 
     margin_pixels = 20
 
-    realistic_line_height = 12
+    realistic_line_height = 10
     image_height = realistic_line_height * len(lines) + 2 * margin_pixels
 
     # width of the background image
@@ -41,9 +41,8 @@ def lines_to_color_image(lines):
     total_lines = len(lines)
     for i, line in enumerate(lines):
         for q, txt_col in enumerate(line):
-            vertical_position = int(round(margin_pixels + (i * realistic_line_height)))
+            vertical_position = margin_pixels + (i * realistic_line_height)
             draw.text((horizontal_position + (6 * q), vertical_position), txt_col[0], fill=txt_col[1], font=font)
-            vertical_position = int(round(margin_pixels + (i * realistic_line_height)))
             draw2.text((horizontal_position + (6 * q), vertical_position), txt_col[0], fill=255, font=font)
 
         my_bar.progress(((i * 100) // total_lines))
@@ -57,7 +56,7 @@ and converted images.
 """)
 
 # get the image
-image = st.file_uploader("Upload an image", type=["jpg", "png", "jpeg", "gif"])
+image = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"])
 
 # example button
 example = st.button("See an Example")
@@ -74,6 +73,12 @@ if image is not None:
         colored_lines = []
 
         im = Image.open(image)
+
+        basewidth = 1000
+        if im.size[0] > basewidth:
+            wpercent = (basewidth / float(im.size[0]))
+            hsize = int((float(im.size[1]) * float(wpercent)))
+            im = im.resize((basewidth, hsize), Image.ANTIALIAS)
 
         pix = im.load()
 
@@ -142,5 +147,5 @@ if image is not None:
             mime="text/plain"
         )
 
-st.markdown("Made by [Noah Virjee](https://blucardin.github.io/) © 2022. You can use the code, but please credit me.",
+st.markdown("Made by [Noah Virjee](https://blucardin.github.io/) © 2022. You can use the code, but please credit me. Version 1.3.0",
             unsafe_allow_html=True)
