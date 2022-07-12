@@ -30,26 +30,18 @@ def image_to_ascii(image):
 
     pixel_ascii_map = "`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$"
 
-    countx = 0
     for x in range(0, im.size[1]):
         printsting = ""
-        county = 0
         lines.append([])
-        for i in range(0, im.size[0]):
-            pixel = pix[county, countx]
+        for y in range(0, im.size[0]):
+            pixel = pix[y, x]
             brightness = (pixel[0] + pixel[1] + pixel[2]) // 3
             ascii_val = pixel_ascii_map[brightness * (len(pixel_ascii_map) - 1) // 255]
             lines[-1].append((ascii_val, pixel))
             printsting += ascii_val
 
-            county += 1
-
-        countx += 1
-
     font = ImageFont.load_default()
-
     margin_pixels = 20
-
     realistic_line_height = 10
     image_height = realistic_line_height * len(lines) + 2 * margin_pixels
 
@@ -134,5 +126,5 @@ if image is not None:
             mime="image/png"
         )
 
-st.markdown("Made by [Noah Virjee](https://blucardin.github.io/) © 2022. You can use the code, but please credit me. Version 1.3.0",
-            unsafe_allow_html=True)
+st.markdown("Made by [Noah Virjee](https://blucardin.github.io/) © 2022. You can use the code, but please credit me. "
+            "Version 1.3.0", unsafe_allow_html=True)
