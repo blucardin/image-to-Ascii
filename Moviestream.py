@@ -14,7 +14,38 @@ PIL_WIDTH_INDEX = 0
 PIL_HEIGHT_INDEX = 1
 
 
-def lines_to_color_image(lines):
+def image_to_ascii(image):
+    my_bar = st.progress(0)
+    lines = []
+
+    im = Image.open(image)
+
+    basewidth = 1000
+    if im.size[0] > basewidth:
+        wpercent = (basewidth / float(im.size[0]))
+        hsize = int((float(im.size[1]) * float(wpercent)))
+        im = im.resize((basewidth, hsize), Image.ANTIALIAS)
+
+    pix = im.load()
+
+    pixel_ascii_map = "`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$"
+
+    countx = 0
+    for x in range(0, im.size[1]):
+        printsting = ""
+        county = 0
+        lines.append([])
+        for i in range(0, im.size[0]):
+            pixel = pix[county, countx]
+            brightness = (pixel[0] + pixel[1] + pixel[2]) // 3
+            ascii_val = pixel_ascii_map[brightness * (len(pixel_ascii_map) - 1) // 255]
+            lines[-1].append((ascii_val, pixel))
+            printsting += ascii_val
+
+            county += 1
+
+        countx += 1
+
     font = ImageFont.load_default()
 
     margin_pixels = 20
@@ -47,6 +78,7 @@ def lines_to_color_image(lines):
 
         my_bar.progress(((i * 100) // total_lines))
 
+    my_bar.progress(100)
     return canvas, canvas2
 
 st.write("""
@@ -67,48 +99,13 @@ if image is not None:
     st.image(image, use_column_width=True)
 
     with st.spinner('Converting image...'):
-        my_bar = st.progress(0)
-        file = ""
-        lines = []
-
-        im = Image.open(image)
-
-        basewidth = 1000
-        if im.size[0] > basewidth:
-            wpercent = (basewidth / float(im.size[0]))
-            hsize = int((float(im.size[1]) * float(wpercent)))
-            im = im.resize((basewidth, hsize), Image.ANTIALIAS)
-
-        pix = im.load()
-
-        pixel_ascii_map = "`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$"
-
-        countx = 0
-        for x in range(0, im.size[1]):
-            printsting = ""
-            county = 0
-            lines.append([])
-            for i in range(0, im.size[0]):
-                pixel = pix[county, countx]
-                brightness = (pixel[0] + pixel[1] + pixel[2]) // 3
-                ascii_val = pixel_ascii_map[brightness * (len(pixel_ascii_map) - 1) // 255]
-                lines[-1].append((ascii_val, pixel))
-                printsting += ascii_val
-
-                county += 1
-
-            file += (printsting + "\n")
-            countx += 1
-
-        image, image2 = lines_to_color_image(lines)
+        image1, image2 = image_to_ascii(image)
 
         output = io.BytesIO()
-        image.save(output, format='PNG')
+        image1.save(output, format='PNG')
 
         output2 = io.BytesIO()
         image2.save(output2, format='PNG')
-
-        my_bar.progress(100)
 
     st.success('Done! Scroll down to see the result.')
     colum1, colum2 = st.columns([1, 1])
@@ -119,7 +116,7 @@ if image is not None:
 
     st.balloons()
 
-    col1, col2, col3 = st.columns([1, 1, 1])
+    col1, col2 = st.columns([1, 1])
 
     with col1:
         st.download_button(
@@ -135,14 +132,6 @@ if image is not None:
             data=output2.getvalue(),
             file_name="output.png",
             mime="image/png"
-        )
-
-    with col3:
-        st.download_button(
-            label="Download as text",
-            data=file,
-            file_name="output.txt",
-            mime="text/plain"
         )
 
 st.markdown("Made by [Noah Virjee](https://blucardin.github.io/) © 2022. You can use the code, but please credit me. Version 1.3.0",
