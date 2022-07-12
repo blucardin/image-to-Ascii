@@ -2,55 +2,25 @@ import os
 import io
 import streamlit as st
 from math import ceil
+from PIL import (
+    Image,
+    ImageOps,
+    ImageFont,
+    ImageDraw,
+)
 
 PIL_GRAYSCALE = 'L'
 PIL_WIDTH_INDEX = 0
 PIL_HEIGHT_INDEX = 1
 
-def lines_to_image(lines):
-    font = ImageFont.load_default()
-
-    # make a sufficiently sized background image based on the combination of font and lines
-    font_points_to_pixels = lambda pt: round(pt * 96.0 / 72)
-    margin_pixels = 20
-
-    # height of the background image
-    tallest_line = max(lines, key=lambda line: font.getsize(line)[PIL_HEIGHT_INDEX])
-    max_line_height = font_points_to_pixels(font.getsize(tallest_line)[PIL_HEIGHT_INDEX])
-    realistic_line_height = max_line_height * 0.8  # apparently it measures a lot of space above visible content
-    image_height = int(ceil(realistic_line_height * len(lines) + 2 * margin_pixels))
-
-    # width of the background image
-    max_line_width = font.getsize(lines[0])[PIL_WIDTH_INDEX]
-    image_width = int(ceil(max_line_width + (2 * margin_pixels)))
-
-    # draw the background
-    background_color = 0  # white
-    image = Image.new(PIL_GRAYSCALE, (image_width, image_height), color=background_color)
-    draw = ImageDraw.Draw(image)
-
-    # draw each line of text
-    font_color = 255  # black
-    horizontal_position = margin_pixels
-    for i, line in enumerate(lines):
-        vertical_position = int(round(margin_pixels + (i * realistic_line_height)))
-        draw.text((horizontal_position, vertical_position), line, fill=font_color, font=font)
-
-    return image
-
 
 def lines_to_color_image(lines):
     font = ImageFont.load_default()
 
-    # make a sufficiently sized background image based on the combination of font and lines
-    font_points_to_pixels = lambda pt: round(pt * 96.0 / 72)
     margin_pixels = 20
 
-    # height of the background image
-    tallest_line = max(lines, key=lambda line: font.getsize(line)[PIL_HEIGHT_INDEX])
-    max_line_height = font_points_to_pixels(font.getsize(tallest_line)[PIL_HEIGHT_INDEX])
-    realistic_line_height = max_line_height * 0.8  # apparently it measures a lot of space above visible content
-    image_height = int(ceil(realistic_line_height * len(lines) + 2 * margin_pixels))
+    realistic_line_height = 12
+    image_height = realistic_line_height * len(lines) + 2 * margin_pixels
 
     # width of the background image
     strings = [i[0] for i in lines[0]]
@@ -59,10 +29,12 @@ def lines_to_color_image(lines):
     max_line_width = font.getsize(string)[PIL_WIDTH_INDEX]
     image_width = int(ceil(max_line_width + (2 * margin_pixels)))
 
-
     # draw the background
-    image = Image.new("RGBA", (image_width, image_height), color=(0, 0, 0, 255))
-    draw = ImageDraw.Draw(image)
+    canvas = Image.new("RGBA", (image_width, image_height), color=(0, 0, 0, 255))
+    draw = ImageDraw.Draw(canvas)
+
+    canvas2 = Image.new("L", (image_width, image_height), color=0)
+    draw2 = ImageDraw.Draw(canvas2)
 
     horizontal_position = margin_pixels
 
@@ -71,17 +43,12 @@ def lines_to_color_image(lines):
         for q, txt_col in enumerate(line):
             vertical_position = int(round(margin_pixels + (i * realistic_line_height)))
             draw.text((horizontal_position + (6 * q), vertical_position), txt_col[0], fill=txt_col[1], font=font)
+            vertical_position = int(round(margin_pixels + (i * realistic_line_height)))
+            draw2.text((horizontal_position + (6 * q), vertical_position), txt_col[0], fill=255, font=font)
 
         my_bar.progress(((i * 100) // total_lines))
 
-    return image
-
-from PIL import (
-    Image,
-    ImageOps,
-    ImageFont,
-    ImageDraw,
-)
+    return canvas, canvas2
 
 st.write("""
 # Image to Ascii converter!
@@ -92,7 +59,7 @@ and converted images.
 # get the image
 image = st.file_uploader("Upload an image", type=["jpg", "png", "jpeg", "gif"])
 
-#example button
+# example button
 example = st.button("See an Example")
 if example:
     image = "img.png"
@@ -130,9 +97,7 @@ if image is not None:
             lines.append(printsting)
             countx += 1
 
-        image = lines_to_color_image(colored_lines)
-        image2 = lines_to_image(lines)
-
+        image, image2 = lines_to_color_image(colored_lines)
 
         output = io.BytesIO()
         image.save(output, format='PNG')
@@ -177,4 +142,5 @@ if image is not None:
             mime="text/plain"
         )
 
-st.markdown("Made by [Noah Virjee](https://blucardin.github.io/) © 2022. You can use the code, but please credit me.", unsafe_allow_html=True)
+st.markdown("Made by [Noah Virjee](https://blucardin.github.io/) © 2022. You can use the code, but please credit me.",
+            unsafe_allow_html=True)
