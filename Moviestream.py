@@ -21,13 +21,6 @@ def image_to_ascii(image):
     lines = []
 
     im = image
-
-    basewidth = 1000
-    if im.size[0] > basewidth:
-        wpercent = (basewidth / float(im.size[0]))
-        hsize = int((float(im.size[1]) * float(wpercent)))
-        im = im.resize((basewidth, hsize), Image.ANTIALIAS)
-
     pix = im.load()
 
     pixel_ascii_map = "`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$"
@@ -101,8 +94,8 @@ if movie is not None:
             clip = mp.VideoFileClip(path)
             if movie is not True:
                 os.remove(path)
-            clip = clip.subclip(0, 5)
-            clip = clip.resize(width=100)
+            clip = clip.subclip(0, clip.duration)
+            clip = clip.resize(width=150)
             num_frames = int(clip.duration * clip.fps)
             frames = clip.iter_frames()
             color = []
@@ -132,6 +125,9 @@ if movie is not None:
                 main_progress.progress(((i * 100) // num_frames))
                 progress.text("Converting frame " + str(i) + " of " + str(num_frames))
 
+        progress.empty()
+        main_progress.empty()
+
         with st.info("Assembling and writing to files"):
             output1 = mp.ImageSequenceClip(color, fps=clip.fps)
             output2 = mp.ImageSequenceClip(mono, fps=clip.fps)
@@ -140,9 +136,9 @@ if movie is not None:
             file1 = "color.mp4"
             file2 = "mono.mp4"
             # create files
-            output1.write_videofile(file1, fps=clip.fps)
+            output1.write_videofile(file1, fps=clip.fps, audio_codec="aac")
             time.sleep(3)
-            output2.write_videofile(file2, fps=clip.fps)
+            # output2.write_videofile(file2, fps=clip.fps, audio_codec="aac")
             for file in os.listdir(color_folder):
                 os.remove(os.path.join(color_folder, file))
                 os.remove(os.path.join(mono_folder, file))
@@ -156,20 +152,22 @@ if movie is not None:
     col1, col2 = st.columns([1, 1])
 
     with col1:
-        btn = st.download_button(
-            label="Download color movie",
-            data=file1,
-            file_name="output1.png",
-            mime="video/mp4",
-        )
+        with open(file1, "rb") as f:
+            st.download_button(
+                label="Download color movie",
+                data=f,
+                file_name="color.mp4",
+                mime="video/mp4",
+            )
 
-    with col2:
-        btn2 = st.download_button(
-            label="Download plain text movie",
-            data=file2,
-            file_name="output1.png",
-            mime="video/mp4",
-        )
+    # with col2:
+    #     with open(file2, "rb") as f:
+    #         st.download_button(
+    #             label="Download plain text movie",
+    #             data=f,
+    #             file_name="mono.mp4",
+    #             mime="video/mp4",
+    #         )
 
 st.markdown("Made by [Noah Virjee](https://blucardin.github.io/) © 2022. You can use the code, but please credit me. "
             "Version 1.3.0", unsafe_allow_html=True)
