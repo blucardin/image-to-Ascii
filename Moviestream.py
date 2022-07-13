@@ -1,5 +1,7 @@
 import os
 import io
+import time
+
 import streamlit as st
 from math import ceil
 from PIL import (
@@ -8,6 +10,7 @@ from PIL import (
     ImageFont,
     ImageDraw,
 )
+import moviepy.editor as mp
 
 PIL_GRAYSCALE = 'L'
 PIL_WIDTH_INDEX = 0
@@ -15,10 +18,9 @@ PIL_HEIGHT_INDEX = 1
 
 
 def image_to_ascii(image):
-    my_bar = st.progress(0)
     lines = []
 
-    im = Image.open(image)
+    im = image
 
     basewidth = 1000
     if im.size[0] > basewidth:
@@ -56,74 +58,117 @@ def image_to_ascii(image):
     canvas = Image.new("RGBA", (image_width, image_height), color=(0, 0, 0, 255))
     draw = ImageDraw.Draw(canvas)
 
-    canvas2 = Image.new("L", (image_width, image_height), color=0)
+    canvas2 = Image.new("RGB", (image_width, image_height), color=(0, 0, 0))
     draw2 = ImageDraw.Draw(canvas2)
 
     horizontal_position = margin_pixels
 
-    total_lines = len(lines)
     for i, line in enumerate(lines):
         for q, txt_col in enumerate(line):
             vertical_position = margin_pixels + (i * realistic_line_height)
             draw.text((horizontal_position + (6 * q), vertical_position), txt_col[0], fill=txt_col[1], font=font)
-            draw2.text((horizontal_position + (6 * q), vertical_position), txt_col[0], fill=255, font=font)
+            draw2.text((horizontal_position + (6 * q), vertical_position), txt_col[0], fill=(255, 255, 255), font=font)
 
-        my_bar.progress(((i * 100) // total_lines))
-
-    my_bar.progress(100)
     return canvas, canvas2
 
+
 st.write("""
-# Image to Ascii converter!
+# Movie to Ascii converter!
 Convert any image to Ascii art. Larger images take significantly longer to convert. Scroll down to see the progress bar,
 and converted images.
 """)
 
 # get the image
-image = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"])
+movie = st.file_uploader("Upload an image", type=["mp4", "mpg"])
+
+path = os.path.join(os.getcwd(), "temp.mp4")
+if movie is not None:
+    with open(path, "wb") as f:
+        f.write(movie.getbuffer())
 
 # example button
 example = st.button("See an Example")
 if example:
-    image = "img.png"
+    movie = True
+    path = "Rick Roll.mp4"
 
-if image is not None:
-    st.image(image, use_column_width=True)
+if movie is not None:
+    st.video(path)
 
-    with st.spinner('Converting image...'):
-        image1, image2 = image_to_ascii(image)
+    with st.spinner('Converting movie...'):
+        with st.info("Loading files and creating temp folders..."):
+            main_progress = st.progress(0)
+            clip = mp.VideoFileClip(path)
+            if movie is not True:
+                os.remove(path)
+            clip = clip.subclip(0, 5)
+            clip = clip.resize(width=100)
+            num_frames = int(clip.duration * clip.fps)
+            frames = clip.iter_frames()
+            color = []
+            mono = []
 
-        output = io.BytesIO()
-        image1.save(output, format='PNG')
+            # create temp folder
+            color_folder = "temp_color"
+            if not os.path.exists(color_folder):
+                os.makedirs(color_folder)
 
-        output2 = io.BytesIO()
-        image2.save(output2, format='PNG')
+            mono_folder = "temp_mono"
+            if not os.path.exists(mono_folder):
+                os.makedirs(mono_folder)
+
+        progress = st.empty()
+        with st.info("Parsing Each Frame"):
+            for i, frame in enumerate(frames):
+                image1, image2 = image_to_ascii(Image.fromarray(frame))
+
+                name = "/frame" + str(i) + ".png"
+                image1.save(color_folder + name, format="PNG")
+                color.append(color_folder + name)
+
+                image2.save(mono_folder + name, format="PNG")
+                mono.append(mono_folder + name)
+
+                main_progress.progress(((i * 100) // num_frames))
+                progress.text("Converting frame " + str(i) + " of " + str(num_frames))
+
+        with st.info("Assembling and writing to files"):
+            output1 = mp.ImageSequenceClip(color, fps=clip.fps)
+            output2 = mp.ImageSequenceClip(mono, fps=clip.fps)
+            output1.audio = clip.audio
+            output2.audio = clip.audio
+            file1 = "color.mp4"
+            file2 = "mono.mp4"
+            # create files
+            output1.write_videofile(file1, fps=clip.fps)
+            time.sleep(3)
+            output2.write_videofile(file2, fps=clip.fps)
+            for file in os.listdir(color_folder):
+                os.remove(os.path.join(color_folder, file))
+                os.remove(os.path.join(mono_folder, file))
+            os.rmdir(color_folder)
+            os.rmdir(mono_folder)
 
     st.success('Done! Scroll down to see the result.')
-    colum1, colum2 = st.columns([1, 1])
-    with colum1:
-        st.image(output, use_column_width=True)
-    with colum2:
-        st.image(output2, use_column_width=True)
-
+    st.video(file1, format="mp4")
     st.balloons()
 
     col1, col2 = st.columns([1, 1])
 
     with col1:
-        st.download_button(
-            label="Download color image",
-            data=output.getvalue(),
-            file_name="output.png",
-            mime="image/png"
+        btn = st.download_button(
+            label="Download color movie",
+            data=file1,
+            file_name="output1.png",
+            mime="video/mp4",
         )
 
     with col2:
-        st.download_button(
-            label="Download plain text image",
-            data=output2.getvalue(),
-            file_name="output.png",
-            mime="image/png"
+        btn2 = st.download_button(
+            label="Download plain text movie",
+            data=file2,
+            file_name="output1.png",
+            mime="video/mp4",
         )
 
 st.markdown("Made by [Noah Virjee](https://blucardin.github.io/) © 2022. You can use the code, but please credit me. "

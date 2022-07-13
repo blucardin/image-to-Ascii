@@ -114,7 +114,7 @@ if image is not None:
         st.download_button(
             label="Download color image",
             data=output.getvalue(),
-            file_name="output.png",
+            file_name="output1.png",
             mime="image/png"
         )
 
@@ -122,7 +122,7 @@ if image is not None:
         st.download_button(
             label="Download plain text image",
             data=output2.getvalue(),
-            file_name="output.png",
+            file_name="output1.png",
             mime="image/png"
         )
 
